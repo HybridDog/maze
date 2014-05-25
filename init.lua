@@ -49,6 +49,10 @@ minetest.register_chatcommand("maze", {
 		local possible_ways = {}
 		local direction = ""
 		local pos = {x = 0, y = 0, l = 0}
+		local return_count = 0
+		local treasure_x = 0
+		local treasure_y = 0
+		local treasure_l = 0
 		table.insert(moves, {x = pos_x, y = pos_y, l = pos_l})
 		-- print(#moves .. " " .. moves[1].x .. " " .. moves[1].y)
 		repeat
@@ -158,6 +162,14 @@ minetest.register_chatcommand("maze", {
 				maze[pos_l][pos_x][pos_y] = false
 				-- print(# possible_ways .. " " .. direction)
 			else
+				-- third time returning is location of treasure
+				if return_count == 3 then
+					-- print("place treasure")
+					treasure_x = pos_x
+					treasure_y = pos_y
+					treasure_l = pos_l
+				end
+				return_count = return_count + 1
 				pos = table.remove(moves)
 				pos_x = pos.x
 				pos_y = pos.y
@@ -274,7 +286,15 @@ minetest.register_chatcommand("maze", {
 						if change_level_up then minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) end
 						pos.y = pos.y + 1
 						minetest.env:add_node(pos, {type = "node", name = "air"})
-						if change_level_up then minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) end
+						if change_level_up then 
+							minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) 
+						else 
+							if change_level_down then 
+								minetest.env:add_node(pos, {type = "node", name = "default:torch", param2 = ladder_direction})
+							elseif (math.random(20) == 1) then 
+								minetest.env:add_node(pos, {type = "node", name = "default:torch", param2 = 6}) 
+							end
+						end
 					end
 					pos.y = pos.y + 1
 					if change_level_up then 
@@ -302,6 +322,94 @@ minetest.register_chatcommand("maze", {
 			minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction})
 			pos.y = pos.y + 1
 			is_air  = minetest.env:get_node_or_nil(pos)
+		end
+		-- place a chest as treasure
+		pos.x = cosine * (treasure_x + 2) - sine * (treasure_y - math.floor(maze_size_y / 2)) + player_pos.x
+		pos.z = sine * (treasure_x + 2) + cosine * (treasure_y - math.floor(maze_size_y / 2)) + player_pos.z
+		pos.y = math.floor(player_pos.y + 0.5) - 3 * treasure_l
+		local items = 0
+		for name, item in pairs(minetest.registered_items) do 
+			local nBegin, nEnd = string.find(name, "default\:")
+			if nBegin ~= nil then 
+				items = items + 1 
+			end
+		end
+		minetest.env:add_node(pos, {type = "node", name = "default:chest", inv = invcontent})
+		local meta = minetest.env:get_meta(pos)
+		local inv = meta:get_inventory()
+		for name, item in pairs(minetest.registered_items) do
+			local nBegin, nEnd = string.find(name, "default\:")
+			if nBegin ~= nil then 
+				if math.random(items / 5) == 1 then 
+					inv:add_item('main', name .. " 1")
+				end
+			end
+		end
+		
+		-- place a closer-stone to seal the entrance and exit
+		pos.x = cosine * (start_x + 2) - sine * (start_y - math.floor(maze_size_y / 2)) + player_pos.x
+		pos.z = sine * (start_x + 2) + cosine * (start_y - math.floor(maze_size_y / 2)) + player_pos.z
+		pos.y = math.floor(player_pos.y + 0.5) - 3 * start_l - 1
+		minetest.env:add_node(pos, {type = "node", name = "maze:closer"})
+		pos.x = cosine * (exit_x + 2) - sine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.x
+		pos.z = sine * (exit_x + 2) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
+		pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l
+		minetest.env:add_node(pos, {type = "node", name = "maze:closer"})
+		-- minetest.env:add_node({x = player_pos.x + 1, y = player_pos.y, z = player_pos.z}, {type = "node", name = "maze:closer"})
+		
+	end,
+})
+
+local maze_closer = {}
+
+minetest.register_node("maze:closer", {
+	tile_images = {"default_cobble.png"},
+	inventory_image = minetest.inventorycube("default_cobble.png"),
+	dug_item = '',
+	material = { diggability = "not"},
+	description = "Closestone",
+})
+
+
+minetest.register_globalstep(function(dtime)
+	local players  = minetest.get_connected_players()
+	for i,player in ipairs(players) do
+		-- print(i.." "..player:get_player_name())
+		for i, pos in ipairs(maze_closer) do
+			local player_pos = player:getpos()
+			local dist = math.sqrt( ((pos.x - player_pos.x) * (pos.x - player_pos.x)) +  ((pos.y - (player_pos.y - 0.5)) * (pos.y - (player_pos.y - 0.5))) +  ((pos.z - player_pos.z) * (pos.z - player_pos.z)) )
+			if dist<3 then -- 2.2 would be enough, just make sure
+				local meta = minetest.env:get_meta(pos)
+				if dist<0.5 then
+					meta:set_string("trap", "triggered")
+				elseif dist > 1 then -- 0.71 would be enough, at least one node away
+					if meta:get_string("trap") == "triggered" then
+						meta:set_string("trap", "")
+						minetest.env:add_node(pos,{name="default:cobble"})
+						minetest.env:add_node({x = pos.x, y = pos.y + 1, z = pos.z},{name="default:cobble"})
+						minetest.env:add_node({x = pos.x, y = pos.y + 2, z = pos.z},{name="default:cobble"})
+					end
+				end
+			end
+		end
+	end
+	
+end)
+
+
+minetest.register_abm(
+	{nodenames = {"maze:closer"},
+	interval = 1,
+	chance = 1,
+	action = function(pos, node, active_object_count, active_object_count_wider)
+		local found = false
+		for i, closer_pos in ipairs(maze_closer) do
+			if closer_pos.x == pos.x and closer_pos.y == pos.y and closer_pos.z == pos.z then
+				found = true
+			end
+		end
+		if not found then
+			table.insert(maze_closer, pos)
 		end
 	end,
 })
