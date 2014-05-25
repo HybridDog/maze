@@ -351,9 +351,9 @@ minetest.register_chatcommand("maze", {
 		pos.z = sine * (start_x + 2) + cosine * (start_y - math.floor(maze_size_y / 2)) + player_pos.z
 		pos.y = math.floor(player_pos.y + 0.5) - 3 * start_l - 1
 		minetest.env:add_node(pos, {type = "node", name = "maze:closer"})
-		pos.x = cosine * (exit_x + 2) - sine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.x
-		pos.z = sine * (exit_x + 2) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
-		pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l
+		pos.x = cosine * (maze_size_x + 1) - sine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.x
+		pos.z = sine * (maze_size_x + 1) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
+		pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l - 1
 		minetest.env:add_node(pos, {type = "node", name = "maze:closer"})
 		-- minetest.env:add_node({x = player_pos.x + 1, y = player_pos.y, z = player_pos.z}, {type = "node", name = "maze:closer"})
 		
