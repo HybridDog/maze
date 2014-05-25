@@ -7,30 +7,36 @@ minetest.register_chatcommand("maze", {
 		local found, _, maze_size_x_st, maze_size_y_st, maze_size_l_st, material_floor, material_wall, material_ceiling = param:find("(%d+)%s+(%d+)%s+(%d+)%s+([^%s]+)%s+([^%s]+)%s+([^%s]+)")
 		local min_size = 11
 		local maze_size_x = tonumber(maze_size_x_st)
-		if maze_size_x == nil then maze_size_x = 20 end
-		if maze_size_x < min_size then maze_size_x = min_size end
+		maze_size_x = maze_size_x or 20
+		maze_size_x = math.max(maze_size_x, min_size)
 		local maze_size_y = tonumber(maze_size_y_st)
-		if maze_size_y == nil then maze_size_y = 20 end
-		if maze_size_y < min_size then maze_size_y = min_size end
+		maze_size_y = maze_size_y or 20
+		maze_size_y = math.max(maze_size_y, min_size)
 		local maze_size_l = tonumber(maze_size_l_st)
-		if maze_size_l == nil then maze_size_l = 3 end
-		if maze_size_l < 1 then maze_size_l = 1 end
+		maze_size_l = maze_size_l or 3
+		maze_size_l = math.max(maze_size_l, 1)
 		-- check if chosen material exists
-		if not minetest.registered_nodes[material_floor] then material_floor = "default:cobble" end
-		if material_floor == nil then material_floor = "default:cobble" end
-		if not minetest.registered_nodes[material_wall] then material_wall = "default:cobble" end
-		if material_wall == nil then material_wall = "default:cobble" end
-		if not minetest.registered_nodes[material_ceiling] then material_ceiling = "default:cobble" end
-		if material_ceiling == nil then material_ceiling = "default:cobble" end
-		
+		if not minetest.registered_nodes[material_floor] then
+			material_floor = "default:cobble"
+		end
+		material_floor = material_floor or "default:cobble"
+		if not minetest.registered_nodes[material_wall] then
+			material_wall = "default:cobble"
+		end
+		material_wall = material_wall or "default:cobble"
+		if not minetest.registered_nodes[material_ceiling] then
+			material_ceiling = "default:cobble"
+		end
+		material_ceiling = material_ceiling or "default:cobble"
+
 		minetest.chat_send_player(name, "Try to build " .. maze_size_x .. " * " .. maze_size_y .. " * " .. maze_size_l .. " maze.  F:" .. material_floor .. " W:" .. material_wall .. " C:" .. material_ceiling)
 
 		local maze = {}
-		for l = 0, maze_size_l-1, 1 do
+		for l = 0, maze_size_l-1 do
 			maze[l] = {}
-			for x = 0, maze_size_x-1, 1 do
+			for x = 0, maze_size_x-1 do
 				maze[l][x] = {}
-				for y = 0, maze_size_y-1, 1 do
+				for y = 0, maze_size_y-1 do
 					maze[l][x][y] = true -- everywhere walls
 				end
 			end
@@ -346,9 +352,9 @@ minetest.register_chatcommand("maze", {
 		if sine == -1 then ladder_direction = 5 end
 		if sine == 1 then ladder_direction = 4 end
 		local is_air  = minetest.get_node_or_nil(pos)
-		while is_air ~= nil and is_air.name ~= "air" do
-			minetest.add_node(pos, {type = "node", name = "air"})
-			minetest.add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction})
+		while is_air ~= nil
+		and is_air.name ~= "air" do
+			minetest.add_node(pos, {name = "default:ladder", param2 = ladder_direction})
 			pos.y = pos.y + 1
 			is_air  = minetest.get_node_or_nil(pos)
 		end
@@ -363,7 +369,7 @@ minetest.register_chatcommand("maze", {
 				items = items + 1 
 			end
 		end
-		minetest.add_node(pos, {type = "node", name = "default:chest", inv = invcontent})
+		minetest.add_node(pos, {name = "default:chest", inv = invcontent})
 		local meta = minetest.get_meta(pos)
 		local inv = meta:get_inventory()
 		for name, item in pairs(minetest.registered_items) do
@@ -400,11 +406,10 @@ minetest.register_node("maze:closer", {
 -- detect player walk over closer stone (abm isn't fast enough)
 minetest.register_globalstep(function(dtime)
 	local players  = minetest.get_connected_players()
-	for i,player in ipairs(players) do
-		-- print(i.." "..player:get_player_name())
-		for i, pos in ipairs(maze_closer) do
+	for _,pos in pairs(maze_closer) do
+		for _,player in pairs(players) do
 			local player_pos = player:getpos()
-			local dist = math.sqrt( ((pos.x - player_pos.x) * (pos.x - player_pos.x)) +  ((pos.y - (player_pos.y - 0.5)) * (pos.y - (player_pos.y - 0.5))) +  ((pos.z - player_pos.z) * (pos.z - player_pos.z)) )
+			local dist = math.sqrt( (pos.x - player_pos.x)^2 + (pos.y - (player_pos.y - 0.5))^2 + (pos.z - player_pos.z)^2 )
 			if dist<3 then -- 2.2 would be enough, just make sure
 				local meta = minetest.get_meta(pos)
 				if dist<0.5 then
@@ -412,15 +417,14 @@ minetest.register_globalstep(function(dtime)
 				elseif dist > 1 then -- 0.71 would be enough, at least one node away
 					if meta:get_string("trap") == "triggered" then
 						meta:set_string("trap", "")
-						minetest.add_node(pos,{name="default:cobble"})
-						minetest.add_node({x = pos.x, y = pos.y + 1, z = pos.z},{name="default:cobble"})
-						minetest.add_node({x = pos.x, y = pos.y + 2, z = pos.z},{name="default:cobble"})
+						for i = 0,2 do
+							minetest.add_node({x = pos.x, y = pos.y+i, z = pos.z},{name="default:cobble"})
+						end
 					end
 				end
 			end
 		end
 	end
-	
 end)
 
 -- create list of all closer stones (walk over detection now in globalstep, because abm isn't called often enough
@@ -428,9 +432,9 @@ minetest.register_abm(
 	{nodenames = {"maze:closer"},
 	interval = 1,
 	chance = 1,
-	action = function(pos, node, active_object_count, active_object_count_wider)
+	action = function(pos)
 		local found = false
-		for i, closer_pos in ipairs(maze_closer) do
+		for _,closer_pos in pairs(maze_closer) do
 			if closer_pos.x == pos.x and closer_pos.y == pos.y and closer_pos.z == pos.z then
 				found = true
 			end
