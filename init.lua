@@ -214,7 +214,7 @@ minetest.register_chatcommand("maze", {
 					-- rotate the maze in players view-direction and move it to his position
 					pos.x = cosine * (x + 2) - sine * (y - math.floor(maze_size_y / 2)) + player_pos.x
 					pos.z = sine * (x + 2) + cosine * (y - math.floor(maze_size_y / 2)) + player_pos.z
-					pos.y = player_pos.y - 1 - 3 * l
+					pos.y = math.floor(player_pos.y + 0.5) - 1 - 3 * l
 					
 					change_level_down = false
 					change_level_up = false
@@ -232,10 +232,6 @@ minetest.register_chatcommand("maze", {
 							change_level_up = true
 							-- find direction for the ladders
 							ladder_direction = 2
-							-- if maze[l - 1][x - 1][y] and maze[l][x - 1][y] then ladder_direction = 3 end
-							-- if maze[l - 1][x + 1][y] and maze[l][x + 1][y] then ladder_direction = 2 end
-							-- if maze[l - 1][x][y - 1] and maze[l][x][y - 1] then ladder_direction = 5 end
-							-- if maze[l - 1][x][y + 1] and maze[l][x][y + 1] then ladder_direction = 4 end
 							if maze[l][x - 1][y] then ladder_direction = 3 end
 							if maze[l][x + 1][y] then ladder_direction = 2 end
 							if maze[l][x][y - 1] then ladder_direction = 5 end
@@ -262,10 +258,6 @@ minetest.register_chatcommand("maze", {
 						elseif ladder_direction == 5 then ladder_direction = 2 end
 					end
 					if not change_level_down then 
-					-- if change_level_down then 
-						-- minetest.env:add_node(pos, {type = "node", name = "air"})
-						-- minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction})
-					-- else
 						minetest.env:add_node(pos, {type = "node", name = material_floor})
 					end
 					if maze[l][x][y] then 
@@ -296,7 +288,20 @@ minetest.register_chatcommand("maze", {
 				print(line)
 			end
 		end
-		-- print("playerdir: (" .. player_dir.x .. ", " .. player_dir.y .. ", " .. player_dir.z .. ")")
-		-- print("playerpos: (" .. player_pos.x .. ", " .. player_pos.y .. ", " .. player_pos.z .. ")")
+		-- if exit is underground, dig a hole to surface
+		pos.x = cosine * (maze_size_x + 2) - sine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.x
+		pos.z = sine * (maze_size_x + 2) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
+		pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l
+		ladder_direction = 2
+		if cosine == -1 then ladder_direction = 3 end
+		if sine == -1 then ladder_direction = 5 end
+		if sine == 1 then ladder_direction = 4 end
+		local is_air  = minetest.env:get_node_or_nil(pos)
+		while is_air ~= nil and is_air.name ~= "air" do
+			minetest.env:add_node(pos, {type = "node", name = "air"})
+			minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction})
+			pos.y = pos.y + 1
+			is_air  = minetest.env:get_node_or_nil(pos)
+		end
 	end,
 })
