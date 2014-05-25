@@ -49,10 +49,12 @@ minetest.register_chatcommand("maze", {
 		local possible_ways = {}
 		local direction = ""
 		local pos = {x = 0, y = 0, l = 0}
+		local forward = true
 		local return_count = 0
 		local treasure_x = 0
 		local treasure_y = 0
 		local treasure_l = 0
+		local dead_end = {}
 		table.insert(moves, {x = pos_x, y = pos_y, l = pos_l})
 		-- print(#moves .. " " .. moves[1].x .. " " .. moves[1].y)
 		repeat
@@ -142,6 +144,7 @@ minetest.register_chatcommand("maze", {
 				table.insert(possible_ways, "W") -- twice as possible as U and D
 			end
 			if #possible_ways > 0 then
+				forward = true
 				direction = possible_ways[math.random(# possible_ways)]
 				if direction == "N" then 
 					pos_y = pos_y - 1
@@ -161,15 +164,28 @@ minetest.register_chatcommand("maze", {
 				table.insert(moves, {x = pos_x, y = pos_y, l = pos_l})
 				maze[pos_l][pos_x][pos_y] = false
 				-- print(# possible_ways .. " " .. direction)
-			else
-				-- third time returning is location of treasure
-				if return_count == 3 then
-					-- print("place treasure")
-					treasure_x = pos_x
-					treasure_y = pos_y
-					treasure_l = pos_l
+			else -- there is no possible way forward
+				if forward then -- the last step was forward, now back, so we're in a dead end
+					-- mark dead end for possible braid
+					if not maze[pos_l][pos_x - 1][pos_y] then -- dead end to E, only way is W
+						table.insert(dead_end, {x = pos_x, y = pos_y, l = pos_l, dx = 1, dy = 0})
+					elseif not maze[pos_l][pos_x + 1][pos_y] then -- dead end to W, only way is E
+						table.insert(dead_end, {x = pos_x, y = pos_y, l = pos_l, dx = -1, dy = 0})
+					elseif not maze[pos_l][pos_x][pos_y - 1] then -- dead end to S, only way is N
+						table.insert(dead_end, {x = pos_x, y = pos_y, l = pos_l, dx = 0, dy = 1})
+					elseif not maze[pos_l][pos_x][pos_y + 1] then -- dead end to N, only way is S
+						table.insert(dead_end, {x = pos_x, y = pos_y, l = pos_l, dx = 0, dy = -1})
+					end
+					-- third time returning is location of treasure, if there are three ways back else it's somewhere before
+					if return_count <= 3 then
+						-- print("place treasure")
+						treasure_x = pos_x
+						treasure_y = pos_y
+						treasure_l = pos_l
+					end
+					return_count = return_count + 1
+					forward = false
 				end
-				return_count = return_count + 1
 				pos = table.remove(moves)
 				pos_x = pos.x
 				pos_y = pos.y
@@ -177,6 +193,19 @@ minetest.register_chatcommand("maze", {
 				-- print("get back to " .. pos_x .. " / " .. pos_y .. " / " .. pos_l .. " to find another way from there")
 			end
 		until pos_x == start_x and pos_y == start_y
+-- create partial braid maze, about 20%
+		for _, braid_pos in pairs(dead_end) do
+			if braid_pos.x ~= treasure_x or braid_pos.y ~= treasure_y or braid_pos.l ~= treasure_l then -- treasure remains in dead end
+				-- print(braid_pos.x.."/"..braid_pos.y.."/"..braid_pos.l.." "..braid_pos.dx.."/"..braid_pos.dy)
+				x = braid_pos.x + braid_pos.dx * 2
+				y = braid_pos.y + braid_pos.dy * 2
+				if math.random(5) == 1 and x > 0 and x < maze_size_x - 1 and y > 0 and y < maze_size_y - 1 and not maze[braid_pos.l][x][y] then
+					-- remove wall if behind is corridor with 20% chance
+					maze[braid_pos.l][braid_pos.x + braid_pos.dx][braid_pos.y + braid_pos.dy] = false
+					print("removed "..braid_pos.l.."/"..braid_pos.x + braid_pos.dx.."/"..braid_pos.y + braid_pos.dy)
+				end
+			end
+		end
 -- create exit on opposite end of maze and make sure it is reachable
 		local exit_x = maze_size_x - 1 -- exit always on opposite side of maze
 		local exit_y = math.random(maze_size_y - 3) + 1
@@ -323,7 +352,7 @@ minetest.register_chatcommand("maze", {
 			pos.y = pos.y + 1
 			is_air  = minetest.env:get_node_or_nil(pos)
 		end
-		-- place a chest as treasure
+-- place a chest as treasure
 		pos.x = cosine * (treasure_x + 2) - sine * (treasure_y - math.floor(maze_size_y / 2)) + player_pos.x
 		pos.z = sine * (treasure_x + 2) + cosine * (treasure_y - math.floor(maze_size_y / 2)) + player_pos.z
 		pos.y = math.floor(player_pos.y + 0.5) - 3 * treasure_l
@@ -345,8 +374,7 @@ minetest.register_chatcommand("maze", {
 				end
 			end
 		end
-		
-		-- place a closer-stone to seal the entrance and exit
+-- place a closer-stone to seal the entrance and exit
 		pos.x = cosine * (start_x + 2) - sine * (start_y - math.floor(maze_size_y / 2)) + player_pos.x
 		pos.z = sine * (start_x + 2) + cosine * (start_y - math.floor(maze_size_y / 2)) + player_pos.z
 		pos.y = math.floor(player_pos.y + 0.5) - 3 * start_l - 1
@@ -355,13 +383,12 @@ minetest.register_chatcommand("maze", {
 		pos.z = sine * (maze_size_x + 1) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
 		pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l - 1
 		minetest.env:add_node(pos, {type = "node", name = "maze:closer"})
-		-- minetest.env:add_node({x = player_pos.x + 1, y = player_pos.y, z = player_pos.z}, {type = "node", name = "maze:closer"})
-		
 	end,
 })
 
-local maze_closer = {}
+local maze_closer = {} -- list of all closer stones
 
+-- closer stone definition
 minetest.register_node("maze:closer", {
 	tile_images = {"default_cobble.png"},
 	inventory_image = minetest.inventorycube("default_cobble.png"),
@@ -370,7 +397,7 @@ minetest.register_node("maze:closer", {
 	description = "Closestone",
 })
 
-
+-- detect player walk over closer stone (abm isn't fast enough)
 minetest.register_globalstep(function(dtime)
 	local players  = minetest.get_connected_players()
 	for i,player in ipairs(players) do
@@ -396,7 +423,7 @@ minetest.register_globalstep(function(dtime)
 	
 end)
 
-
+-- create list of all closer stones (walk over detection now in globalstep, because abm isn't called often enough
 minetest.register_abm(
 	{nodenames = {"maze:closer"},
 	interval = 1,
