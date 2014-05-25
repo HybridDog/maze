@@ -2,6 +2,7 @@ minetest.register_chatcommand("maze", {
 	params = "<size_x> <size_y> <#floors> <material_floor> <material_wall> <material_ceiling>",
 	description = "Create a maze near your position",
 	func = function(name, param)
+		local t1 = os.clock()
 		math.randomseed(os.time())
 		local player_pos = minetest.get_player_by_name(name):getpos()
 		local found, _, maze_size_x_st, maze_size_y_st, maze_size_l_st, material_floor, material_wall, material_ceiling = param:find("(%d+)%s+(%d+)%s+(%d+)%s+([^%s]+)%s+([^%s]+)%s+([^%s]+)")
@@ -254,8 +255,8 @@ minetest.register_chatcommand("maze", {
 		local change_level_down = false
 		local change_level_up = false
 		local ladder_direction = 2
-		for l = maze_size_l - 1, 0, -1 do
-			for y = 0, maze_size_y - 1, 1 do
+		for l = maze_size_l-1, 0, -1 do
+			for y = 0, maze_size_y-1 do
 				if l == 0 and y == math.floor(maze_size_y / 2) then line = "<-" else line = "  " end
 				for x = 0, maze_size_x - 1, 1 do
 					-- rotate the maze in players view-direction and move it to his position
@@ -389,6 +390,7 @@ minetest.register_chatcommand("maze", {
 		pos.z = sine * (maze_size_x + 1) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
 		pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l - 1
 		minetest.add_node(pos, {type = "node", name = "maze:closer"})
+		print(string.format("[maze] done after ca. %.2fs", os.clock() - t1))
 	end,
 })
 
@@ -433,14 +435,13 @@ minetest.register_abm(
 	interval = 1,
 	chance = 1,
 	action = function(pos)
-		local found = false
 		for _,closer_pos in pairs(maze_closer) do
-			if closer_pos.x == pos.x and closer_pos.y == pos.y and closer_pos.z == pos.z then
-				found = true
+			if closer_pos.x == pos.x
+			and closer_pos.y == pos.y
+			and closer_pos.z == pos.z then
+				return
 			end
 		end
-		if not found then
-			table.insert(maze_closer, pos)
-		end
+		table.insert(maze_closer, pos)
 	end,
 })
