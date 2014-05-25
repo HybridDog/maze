@@ -1,7 +1,14 @@
+local contents = {}
+
+local function pos_to_string(pos)
+	return pos.x.." "..pos.y.." "..pos.z
+end
+
 minetest.register_chatcommand("maze", {
 	params = "<size_x> <size_y> <#floors> <material_floor> <material_wall> <material_ceiling>",
 	description = "Create a maze near your position",
 	func = function(name, param)
+		local t1 = os.clock()
 		math.randomseed(os.time())
 		local player_pos = minetest.get_player_by_name(name):getpos()
 		local found, _, maze_size_x_st, maze_size_y_st, maze_size_l_st, material_floor, material_wall, material_ceiling = param:find("(%d+)%s+(%d+)%s+(%d+)%s+([^%s]+)%s+([^%s]+)%s+([^%s]+)")
@@ -254,8 +261,11 @@ minetest.register_chatcommand("maze", {
 		local change_level_down = false
 		local change_level_up = false
 		local ladder_direction = 2
-		for l = maze_size_l - 1, 0, -1 do
-			for y = 0, maze_size_y - 1, 1 do
+
+		local node_tab = {}
+
+		for l = maze_size_l-1, 0, -1 do
+			for y = 0, maze_size_y-1 do
 				if l == 0 and y == math.floor(maze_size_y / 2) then line = "<-" else line = "  " end
 				for x = 0, maze_size_x - 1, 1 do
 					-- rotate the maze in players view-direction and move it to his position
@@ -304,45 +314,91 @@ minetest.register_chatcommand("maze", {
 						elseif ladder_direction == 4 then ladder_direction = 3
 						elseif ladder_direction == 5 then ladder_direction = 2 end
 					end
-					if not change_level_down then 
-						minetest.add_node(pos, {type = "node", name = material_floor})
+					if not change_level_down then
+						node_tab[pos_to_string(pos)] = {material_floor}
 					end
 					if maze[l][x][y] then 
 						line = "X" .. line
 						pos.y = pos.y + 1
-						minetest.add_node(pos, {type = "node", name = material_wall})
+						node_tab[pos_to_string(pos)] = {material_wall}
 						pos.y = pos.y + 1
-						minetest.add_node(pos, {type = "node", name = material_wall})
+						node_tab[pos_to_string(pos)] = {material_wall}
 					else
 						line = " " .. line
 						pos.y = pos.y + 1
-						minetest.add_node(pos, {type = "node", name = "air"})
+						node_tab[pos_to_string(pos)] = {"air"}
 						-- if change_level_down then minetest.add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) end
-						if change_level_up then minetest.add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) end
+						if change_level_up then
+							node_tab[pos_to_string(pos)] = {"default:ladder", ladder_direction}
+						end
 						pos.y = pos.y + 1
-						minetest.add_node(pos, {type = "node", name = "air"})
+						node_tab[pos_to_string(pos)] = {"air"}
 						if change_level_up then 
-							minetest.add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) 
+							node_tab[pos_to_string(pos)] = {"default:ladder", ladder_direction}
 						else 
 							if change_level_down then 
-								minetest.add_node(pos, {type = "node", name = "default:torch", param2 = ladder_direction})
+								node_tab[pos_to_string(pos)] = {"default:torch", ladder_direction}
 							elseif (math.random(20) == 1) then 
-								minetest.add_node(pos, {type = "node", name = "default:torch", param2 = 6}) 
+								node_tab[pos_to_string(pos)] = {"default:torch", 6}
 							end
 						end
 					end
 					pos.y = pos.y + 1
 					if change_level_up then 
-						minetest.add_node(pos, {type = "node", name = "air"})
-						minetest.add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction})
+						node_tab[pos_to_string(pos)] = {"default:ladder", ladder_direction}
 					else
-						minetest.add_node(pos, {type = "node", name = material_ceiling})
+						node_tab[pos_to_string(pos)] = {material_ceiling}
 					end
 				end
 				if l==exit_l and y==exit_y then line = "<-" .. line else line = "  " .. line end
 				print(line)
 			end
 		end
+
+		local minp = {}
+		local maxp = {}
+		for a,_ in pairs(node_tab) do
+			local p = {}
+			p.x,p.y,p.z = unpack(string.split(a, " "))
+			if not minp.x then
+				minp = vector.new(p)
+				maxp = vector.new(p)
+			else
+				for _,n in pairs({"x", "y", "z"}) do
+					minp[n] = math.min(minp[n], p[n])
+					maxp[n] = math.max(maxp[n], p[n])
+				end
+			end
+		end
+		minetest.chat_send_all(dump(minp)..dump(maxp))
+		local manip = minetest.get_voxel_manip()
+		local emerged_pos1, emerged_pos2 = manip:read_from_map(minp, maxp)
+		local area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
+		local nodes = manip:get_data()
+		local dirs = manip:get_param2_data()
+
+		for n,i in pairs(node_tab) do
+			local p = {}
+			p.x,p.y,p.z = unpack(string.split(n, " "))
+			p = area:indexp(p)
+			local nam = i[1]
+			local nd = contents[nam]
+			if not nd then
+				nd = minetest.get_content_id(nam)
+				contents[nam] = nd
+			end
+			nodes[p] = nd
+			local par2 = i[2]
+			if par2 then
+				dirs[p] = par2
+			end
+		end
+
+		manip:set_data(nodes)
+		manip:set_param2_data(dirs)
+		manip:write_to_map()
+		manip:update_map()
+
 		-- if exit is underground, dig a hole to surface
 		pos.x = cosine * (maze_size_x + 2) - sine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.x
 		pos.z = sine * (maze_size_x + 2) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
@@ -389,6 +445,7 @@ minetest.register_chatcommand("maze", {
 		pos.z = sine * (maze_size_x + 1) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
 		pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l - 1
 		minetest.add_node(pos, {type = "node", name = "maze:closer"})
+		print(string.format("[maze] done after ca. %.2fs", os.clock() - t1))
 	end,
 })
 
@@ -433,14 +490,13 @@ minetest.register_abm(
 	interval = 1,
 	chance = 1,
 	action = function(pos)
-		local found = false
 		for _,closer_pos in pairs(maze_closer) do
-			if closer_pos.x == pos.x and closer_pos.y == pos.y and closer_pos.z == pos.z then
-				found = true
+			if closer_pos.x == pos.x
+			and closer_pos.y == pos.y
+			and closer_pos.z == pos.z then
+				return
 			end
 		end
-		if not found then
-			table.insert(maze_closer, pos)
-		end
+		table.insert(maze_closer, pos)
 	end,
 })
