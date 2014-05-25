@@ -13,8 +13,10 @@ minetest.register_chatcommand("maze", {
 		if maze_size_x < min_size then maze_size_x = min_size end
 		if maze_size_y < min_size then maze_size_y = min_size end
 		if material_floor == nil then material_floor = "default:cobble" end
+		-- if material_floor == nil then material_floor = "default:stone" end
 		if material_wall == nil then material_wall = "default:cobble" end
 		if material_ceiling == nil then material_ceiling = "default:cobble" end
+		-- if material_ceiling == nil then material_ceiling = "air" end
 		
 		minetest.chat_send_player(name, "Try to build "..maze_size_x.." * "..maze_size_y.." maze.  F:"..material_floor.." W:"..material_wall.." C:"..material_ceiling)
 
@@ -44,6 +46,8 @@ minetest.register_chatcommand("maze", {
 				((pos_y-2) >= 0) and ((pos_x-1) >= 0) and ((pos_x+1) < maze_size_x) and 
 				(maze[pos_x][pos_y-1]) and -- nord ist mauer
 				(maze[pos_x][pos_y-2]) and -- nord von nord ist mauer
+			(maze[pos_x-1][pos_y-2]) and -- nord von nord ist mauer
+			(maze[pos_x+1][pos_y-2]) and -- nord von nord ist mauer
 				(maze[pos_x-1][pos_y-1]) and -- west von nord ist mauer
 				(maze[pos_x+1][pos_y-1]) -- ost von nord ist mauer
 			) then
@@ -54,6 +58,8 @@ minetest.register_chatcommand("maze", {
 				((pos_x+2) < maze_size_x) and ((pos_y-1) >= 0) and ((pos_y+1) < maze_size_y) and 
 				(maze[pos_x+1][pos_y]) and -- ost ist mauer
 				(maze[pos_x+2][pos_y]) and -- ost von ost ist mauer
+			(maze[pos_x+2][pos_y-1]) and -- ost von ost ist mauer
+			(maze[pos_x+2][pos_y+1]) and -- ost von ost ist mauer
 				(maze[pos_x+1][pos_y-1]) and -- nord von ost ist mauer
 				(maze[pos_x+1][pos_y+1]) -- sued von ost ist mauer
 			) then
@@ -64,6 +70,8 @@ minetest.register_chatcommand("maze", {
 				((pos_y+2) < maze_size_y) and ((pos_x-1) >= 0) and ((pos_x+1) < maze_size_x) and 
 				(maze[pos_x][pos_y+1]) and -- sued ist mauer
 				(maze[pos_x][pos_y+2]) and -- sued von sued ist mauer
+			(maze[pos_x-1][pos_y+2]) and -- sued von sued ist mauer
+			(maze[pos_x+1][pos_y+2]) and -- sued von sued ist mauer
 				(maze[pos_x-1][pos_y+1]) and -- west von sued ist mauer
 				(maze[pos_x+1][pos_y+1]) -- ost von sued ist mauer
 			) then
@@ -74,6 +82,8 @@ minetest.register_chatcommand("maze", {
 				((pos_x-2) >= 0) and ((pos_y-1) >= 0) and ((pos_y+1) < maze_size_y) and 
 				(maze[pos_x-1][pos_y]) and -- west ist mauer
 				(maze[pos_x-2][pos_y]) and -- west von west ist mauer
+			(maze[pos_x-2][pos_y-1]) and -- west von west ist mauer
+			(maze[pos_x-2][pos_y+1]) and -- west von west ist mauer
 				(maze[pos_x-1][pos_y-1]) and -- nord von west ist mauer
 				(maze[pos_x-1][pos_y+1]) -- sued von west ist mauer
 			) then
