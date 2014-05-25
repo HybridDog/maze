@@ -4,7 +4,7 @@ minetest.register_chatcommand("maze", {
 	-- privs = {},
 	func = function(name, param)
 		local player_pos = minetest.env:get_player_by_name(name):getpos()
-		local found, _, maze_size_x_st, maze_size_y_st = param:find("(%d+)%s+(%d+)")
+		local found, _, maze_size_x_st, maze_size_y_st, material_floor, material_wall, material_ceiling = param:find("(%d+)%s+(%d+)%s+([^%s]+)%s+([^%s]+)%s+([^%s]+)")
 		local min_size = 10
 		local maze_size_x = tonumber(maze_size_x_st)
 		local maze_size_y = tonumber(maze_size_y_st)
@@ -12,6 +12,10 @@ minetest.register_chatcommand("maze", {
 		if maze_size_y == nil then maze_size_y = min_size end
 		if maze_size_x < min_size then maze_size_x = min_size end
 		if maze_size_y < min_size then maze_size_y = min_size end
+		if material_floor == nil then material_floor = "default:cobble" end
+		if material_wall == nil then material_wall = "default:cobble" end
+		if material_ceiling == nil then material_ceiling = "default:cobble" end
+		
 		minetest.chat_send_player(name, "Try to build maze with dimension "..maze_size_x.." * "..maze_size_y)
 
 		maze = {}
@@ -100,13 +104,13 @@ minetest.register_chatcommand("maze", {
 			local line = "";
 			for x=0, maze_size_x-1, 1 do
 				local pos = {x=player_pos.x + x + offset_x, y=player_pos.y-1, z=player_pos.z + y + offset_y}
-				minetest.env:add_node(pos,{type="node",name="default:cobble"})
+				minetest.env:add_node(pos,{type="node",name=material_floor})
 				if maze[x][y] == 1 then 
 					line = line.."X"
 					local pos = {x=player_pos.x + x + offset_x, y=player_pos.y, z=player_pos.z + y + offset_y}
-					minetest.env:add_node(pos,{type="node",name="default:cobble"})
+					minetest.env:add_node(pos,{type="node",name=material_wall})
 					local pos = {x=player_pos.x + x + offset_x, y=player_pos.y+1, z=player_pos.z + y + offset_y}
-					minetest.env:add_node(pos,{type="node",name="default:cobble"})
+					minetest.env:add_node(pos,{type="node",name=material_wall})
 				else
 					line = line.." " 
 					local pos = {x=player_pos.x + x + offset_x, y=player_pos.y, z=player_pos.z + y + offset_y}
@@ -115,7 +119,7 @@ minetest.register_chatcommand("maze", {
 					minetest.env:add_node(pos,{type="node",name="air"})
 				end
 				local pos = {x=player_pos.x + x + offset_x, y=player_pos.y+2, z=player_pos.z + y + offset_y}
-				minetest.env:add_node(pos,{type="node",name="default:cobble"})
+				minetest.env:add_node(pos,{type="node",name=material_ceiling})
 			end
 			print(line)
 		end
