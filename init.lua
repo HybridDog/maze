@@ -3,7 +3,7 @@ minetest.register_chatcommand("maze", {
 	description = "Create a maze near your position",
 	func = function(name, param)
 		math.randomseed(os.time())
-		local player_pos = minetest.env:get_player_by_name(name):getpos()
+		local player_pos = minetest.get_player_by_name(name):getpos()
 		local found, _, maze_size_x_st, maze_size_y_st, maze_size_l_st, material_floor, material_wall, material_ceiling = param:find("(%d+)%s+(%d+)%s+(%d+)%s+([^%s]+)%s+([^%s]+)%s+([^%s]+)")
 		local min_size = 11
 		local maze_size_x = tonumber(maze_size_x_st)
@@ -218,7 +218,7 @@ minetest.register_chatcommand("maze", {
 		until exit_reachable
 
 -- get transform factors to place the maze in "look_dir" of player
-		local player_dir = minetest.env:get_player_by_name(name):get_look_dir()
+		local player_dir = minetest.get_player_by_name(name):get_look_dir()
 		local cosine = 1
 		local sine = 0
 		if math.abs(player_dir.x) > math.abs(player_dir.z) then 
@@ -299,38 +299,38 @@ minetest.register_chatcommand("maze", {
 						elseif ladder_direction == 5 then ladder_direction = 2 end
 					end
 					if not change_level_down then 
-						minetest.env:add_node(pos, {type = "node", name = material_floor})
+						minetest.add_node(pos, {type = "node", name = material_floor})
 					end
 					if maze[l][x][y] then 
 						line = "X" .. line
 						pos.y = pos.y + 1
-						minetest.env:add_node(pos, {type = "node", name = material_wall})
+						minetest.add_node(pos, {type = "node", name = material_wall})
 						pos.y = pos.y + 1
-						minetest.env:add_node(pos, {type = "node", name = material_wall})
+						minetest.add_node(pos, {type = "node", name = material_wall})
 					else
 						line = " " .. line
 						pos.y = pos.y + 1
-						minetest.env:add_node(pos, {type = "node", name = "air"})
-						-- if change_level_down then minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) end
-						if change_level_up then minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) end
+						minetest.add_node(pos, {type = "node", name = "air"})
+						-- if change_level_down then minetest.add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) end
+						if change_level_up then minetest.add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) end
 						pos.y = pos.y + 1
-						minetest.env:add_node(pos, {type = "node", name = "air"})
+						minetest.add_node(pos, {type = "node", name = "air"})
 						if change_level_up then 
-							minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) 
+							minetest.add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction}) 
 						else 
 							if change_level_down then 
-								minetest.env:add_node(pos, {type = "node", name = "default:torch", param2 = ladder_direction})
+								minetest.add_node(pos, {type = "node", name = "default:torch", param2 = ladder_direction})
 							elseif (math.random(20) == 1) then 
-								minetest.env:add_node(pos, {type = "node", name = "default:torch", param2 = 6}) 
+								minetest.add_node(pos, {type = "node", name = "default:torch", param2 = 6}) 
 							end
 						end
 					end
 					pos.y = pos.y + 1
 					if change_level_up then 
-						minetest.env:add_node(pos, {type = "node", name = "air"})
-						minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction})
+						minetest.add_node(pos, {type = "node", name = "air"})
+						minetest.add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction})
 					else
-						minetest.env:add_node(pos, {type = "node", name = material_ceiling})
+						minetest.add_node(pos, {type = "node", name = material_ceiling})
 					end
 				end
 				if l==exit_l and y==exit_y then line = "<-" .. line else line = "  " .. line end
@@ -345,12 +345,12 @@ minetest.register_chatcommand("maze", {
 		if cosine == -1 then ladder_direction = 3 end
 		if sine == -1 then ladder_direction = 5 end
 		if sine == 1 then ladder_direction = 4 end
-		local is_air  = minetest.env:get_node_or_nil(pos)
+		local is_air  = minetest.get_node_or_nil(pos)
 		while is_air ~= nil and is_air.name ~= "air" do
-			minetest.env:add_node(pos, {type = "node", name = "air"})
-			minetest.env:add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction})
+			minetest.add_node(pos, {type = "node", name = "air"})
+			minetest.add_node(pos, {type = "node", name = "default:ladder", param2 = ladder_direction})
 			pos.y = pos.y + 1
-			is_air  = minetest.env:get_node_or_nil(pos)
+			is_air  = minetest.get_node_or_nil(pos)
 		end
 -- place a chest as treasure
 		pos.x = cosine * (treasure_x + 2) - sine * (treasure_y - math.floor(maze_size_y / 2)) + player_pos.x
@@ -363,8 +363,8 @@ minetest.register_chatcommand("maze", {
 				items = items + 1 
 			end
 		end
-		minetest.env:add_node(pos, {type = "node", name = "default:chest", inv = invcontent})
-		local meta = minetest.env:get_meta(pos)
+		minetest.add_node(pos, {type = "node", name = "default:chest", inv = invcontent})
+		local meta = minetest.get_meta(pos)
 		local inv = meta:get_inventory()
 		for name, item in pairs(minetest.registered_items) do
 			local nBegin, nEnd = string.find(name, "default:")
@@ -378,11 +378,11 @@ minetest.register_chatcommand("maze", {
 		pos.x = cosine * (start_x + 2) - sine * (start_y - math.floor(maze_size_y / 2)) + player_pos.x
 		pos.z = sine * (start_x + 2) + cosine * (start_y - math.floor(maze_size_y / 2)) + player_pos.z
 		pos.y = math.floor(player_pos.y + 0.5) - 3 * start_l - 1
-		minetest.env:add_node(pos, {type = "node", name = "maze:closer"})
+		minetest.add_node(pos, {type = "node", name = "maze:closer"})
 		pos.x = cosine * (maze_size_x + 1) - sine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.x
 		pos.z = sine * (maze_size_x + 1) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
 		pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l - 1
-		minetest.env:add_node(pos, {type = "node", name = "maze:closer"})
+		minetest.add_node(pos, {type = "node", name = "maze:closer"})
 	end,
 })
 
@@ -406,15 +406,15 @@ minetest.register_globalstep(function(dtime)
 			local player_pos = player:getpos()
 			local dist = math.sqrt( ((pos.x - player_pos.x) * (pos.x - player_pos.x)) +  ((pos.y - (player_pos.y - 0.5)) * (pos.y - (player_pos.y - 0.5))) +  ((pos.z - player_pos.z) * (pos.z - player_pos.z)) )
 			if dist<3 then -- 2.2 would be enough, just make sure
-				local meta = minetest.env:get_meta(pos)
+				local meta = minetest.get_meta(pos)
 				if dist<0.5 then
 					meta:set_string("trap", "triggered")
 				elseif dist > 1 then -- 0.71 would be enough, at least one node away
 					if meta:get_string("trap") == "triggered" then
 						meta:set_string("trap", "")
-						minetest.env:add_node(pos,{name="default:cobble"})
-						minetest.env:add_node({x = pos.x, y = pos.y + 1, z = pos.z},{name="default:cobble"})
-						minetest.env:add_node({x = pos.x, y = pos.y + 2, z = pos.z},{name="default:cobble"})
+						minetest.add_node(pos,{name="default:cobble"})
+						minetest.add_node({x = pos.x, y = pos.y + 1, z = pos.z},{name="default:cobble"})
+						minetest.add_node({x = pos.x, y = pos.y + 2, z = pos.z},{name="default:cobble"})
 					end
 				end
 			end
