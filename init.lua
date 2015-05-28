@@ -464,22 +464,28 @@ minetest.register_chatcommand("maze", {
 })
 
 local maze_closer = {} -- list of all closer stones
+local closer_available = false
 
 -- closer stone definition
 minetest.register_node("maze:closer", {
-	tile_images = {"default_cobble.png"},
-	inventory_image = minetest.inventorycube("default_cobble.png"),
-	dug_item = '',
-	material = { diggability = "not"},
 	description = "Closestone",
+	tiles = {"default_cobble.png"},
+	drop = "",
+	material = { diggability = "not"},
+	on_construct = function(pos)
+		table.insert(maze_closer, pos)
+		closer_available = true
+	end,
 })
 
 -- detect player walk over closer stone (abm isn't fast enough)
 minetest.register_globalstep(function(dtime)
-	local players  = minetest.get_connected_players()
-	for _,pos in pairs(maze_closer) do
-		for _,player in pairs(players) do
-			local player_pos = player:getpos()
+	if not closer_available then
+		return
+	end
+	for _,player in pairs(minetest.get_connected_players()) do
+		local player_pos = player:getpos()
+		for _,pos in pairs(maze_closer) do
 			local dist = math.sqrt( (pos.x - player_pos.x)^2 + (pos.y - (player_pos.y - 0.5))^2 + (pos.z - player_pos.z)^2 )
 			if dist<3 then -- 2.2 would be enough, just make sure
 				local meta = minetest.get_meta(pos)
@@ -491,6 +497,7 @@ minetest.register_globalstep(function(dtime)
 						for i = 0,2 do
 							minetest.add_node({x = pos.x, y = pos.y+i, z = pos.z},{name="default:cobble"})
 						end
+						minetest.sound_play("default_chest_locked", {pos = pos})
 					end
 				end
 			end
@@ -501,16 +508,15 @@ end)
 -- create list of all closer stones (walk over detection now in globalstep, because abm isn't called often enough
 minetest.register_abm(
 	{nodenames = {"maze:closer"},
-	interval = 1,
+	interval = 5,
 	chance = 1,
 	action = function(pos)
 		for _,closer_pos in pairs(maze_closer) do
-			if closer_pos.x == pos.x
-			and closer_pos.y == pos.y
-			and closer_pos.z == pos.z then
+			if vector.equals(pos, closer_pos) then
 				return
 			end
 		end
 		table.insert(maze_closer, pos)
+		closer_available = true
 	end,
 })
