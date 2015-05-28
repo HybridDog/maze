@@ -326,39 +326,43 @@ local function spawn_maze(name, param)
 				max.x = math.max(max.x, pos.x)
 				max.z = math.max(max.z, pos.z)
 				if not change_level_down then
-					table.insert(tab, {vector.new(pos), 1})
+					table.insert(tab, {{pos.x, pos.y, pos.z}, 1})
 				end
+				pos.y = pos.y + 1
+				local letter = "  "
 				if maze[l][x][y] then 
-					line = "X" .. line
+					--line = "X" .. line
+					letter = "██"
+					table.insert(tab, {{pos.x, pos.y, pos.z}, 2})
 					pos.y = pos.y + 1
-					table.insert(tab, {vector.new(pos), 2})
-					pos.y = pos.y + 1
-					table.insert(tab, {vector.new(pos), 2})
+					table.insert(tab, {{pos.x, pos.y, pos.z}, 2})
 				else
-					line = " " .. line
-					pos.y = pos.y + 1
 					-- if change_level_down then minetest.add_node(pos, {name = "default:ladder", param2 = ladder_direction}) end
 					if change_level_up then
-						table.insert(tab, {vector.new(pos), 4, ladder_direction})
+						table.insert(tab, {{pos.x, pos.y, pos.z}, 4, ladder_direction})
+						letter = "╞╡"
 					else
-						table.insert(tab, {vector.new(pos), 0})
+						table.insert(tab, {{pos.x, pos.y, pos.z}, 0})
 					end
 					pos.y = pos.y + 1
 					if change_level_up then 
-						table.insert(tab, {vector.new(pos), 4, ladder_direction})
+						table.insert(tab, {{pos.x, pos.y, pos.z}, 4, ladder_direction})
 					elseif change_level_down then 
-						table.insert(tab, {vector.new(pos), 5, ladder_direction})
+						table.insert(tab, {{pos.x, pos.y, pos.z}, 5, ladder_direction})
+						letter = "☀▤"
 					elseif math.random(20) == 1 then 
-						table.insert(tab, {vector.new(pos), 5})
+						table.insert(tab, {{pos.x, pos.y, pos.z}, 5})
+						letter = "☀ "
 					else
-						table.insert(tab, {vector.new(pos), 0})
+						table.insert(tab, {{pos.x, pos.y, pos.z}, 0})
 					end
 				end
+				line = letter .. line
 				pos.y = pos.y + 1
 				if change_level_up then 
-					table.insert(tab, {vector.new(pos), 4, ladder_direction})
+					table.insert(tab, {{pos.x, pos.y, pos.z}, 4, ladder_direction})
 				else
-					table.insert(tab, {vector.new(pos), 3})
+					table.insert(tab, {{pos.x, pos.y, pos.z}, 3})
 				end
 				max.y = math.max(max.y, pos.y)
 			end
@@ -390,7 +394,7 @@ local function spawn_maze(name, param)
 
 	for _,p in pairs(tab) do
 		local p, typ, par = unpack(p)
-		p = area:indexp(p)
+		p = area:index(unpack(p))
 		nodes[p] = c[typ]
 		if par then
 			param2s[p] = par
@@ -413,7 +417,7 @@ local function spawn_maze(name, param)
 	if sine == -1 then ladder_direction = 5 end
 	if sine == 1 then ladder_direction = 4 end
 	local is_air  = minetest.get_node_or_nil(pos)
-	while is_air ~= nil
+	while is_air
 	and is_air.name ~= "air" do
 		minetest.add_node(pos, {name = "default:ladder", param2 = ladder_direction})
 		pos.y = pos.y + 1
@@ -426,7 +430,7 @@ local function spawn_maze(name, param)
 	local items = 0
 	for name, item in pairs(minetest.registered_items) do 
 		local nBegin, nEnd = string.find(name, "default:")
-		if nBegin ~= nil then 
+		if nBegin then 
 			items = items + 1 
 		end
 	end
