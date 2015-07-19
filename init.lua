@@ -247,7 +247,7 @@ local function spawn_maze(name, param)
 	end
 	-- print (cosine .. " " .. sine)
 
-	local player_pos = player:getpos()
+	local playerpos = vector.round(player:getpos())
 -- build maze in minetest-world
 	local min, max
 	local tab = {}
@@ -262,13 +262,7 @@ local function spawn_maze(name, param)
 			end
 			for x = 0, maze_size_x - 1 do
 				local ladder_direction = 2
-				local pos = {}
 				-- rotate the maze in players view-direction and move it to his position
-				pos.x = cosine * (x + 2) - sine * (y - start_y) + player_pos.x
-				pos.z = sine * (x + 2) + cosine * (y - start_y) + player_pos.z
-				pos.y = math.floor(player_pos.y + 0.5) - 1 - 3 * l
-				pos = vector.round(pos)
-
 				local change_level_down = false
 				local change_level_up = false
 				for i, v in ipairs(updowns) do
@@ -316,6 +310,12 @@ local function spawn_maze(name, param)
 					elseif ladder_direction == 4 then ladder_direction = 5
 					elseif ladder_direction == 5 then ladder_direction = 4 end
 				end
+
+				local pos = vector.add(playerpos, {
+					x = cosine * (x + 2) - sine * (y - start_y),
+					z = sine * (x + 2) + cosine * (y - start_y),
+					y = - 1 - 3 * l
+				})
 				if not min then
 					min = vector.new(pos)
 					max = vector.new(pos)
@@ -408,15 +408,15 @@ local function spawn_maze(name, param)
 
 
 	-- if exit is underground, dig a hole to surface
-	local pos = {
-		x = cosine * (maze_size_x + 2) - sine * (exit_y - start_y) + player_pos.x,
-		z = sine * (maze_size_x + 2) + cosine * (exit_y - start_y) + player_pos.z,
-		y = math.floor(player_pos.y + 0.5) - 3 * exit_l
-	}
 	local ladder_direction = 2
 	if cosine == -1 then ladder_direction = 3 end
 	if sine == -1 then ladder_direction = 5 end
 	if sine == 1 then ladder_direction = 4 end
+	local pos = vector.add(playerpos, {
+		x = cosine * (maze_size_x + 2) - sine * (exit_y - start_y),
+		z = sine * (maze_size_x + 2) + cosine * (exit_y - start_y),
+		y = - 3 * exit_l
+	})
 	local is_air  = minetest.get_node_or_nil(pos)
 	while is_air
 	and is_air.name ~= "air" do
@@ -424,37 +424,41 @@ local function spawn_maze(name, param)
 		pos.y = pos.y + 1
 		is_air  = minetest.get_node_or_nil(pos)
 	end
+
 -- place a chest as treasure
-	pos.x = cosine * (treasure_x + 2) - sine * (treasure_y - start_y) + player_pos.x
-	pos.z = sine * (treasure_x + 2) + cosine * (treasure_y - start_y) + player_pos.z
-	pos.y = math.floor(player_pos.y + 0.5) - 3 * treasure_l
 	local items = 0
-	for name, item in pairs(minetest.registered_items) do
-		local nBegin, nEnd = string.find(name, "default:")
-		if nBegin then
+	local item_list = {}
+	for name in pairs(minetest.registered_items) do
+		if string.find(name, "default:") then
 			items = items + 1
+			item_list[items] = name
 		end
 	end
+	pos = vector.add(playerpos, {
+		x = cosine * (treasure_x + 2) - sine * (treasure_y - start_y),
+		z = sine * (treasure_x + 2) + cosine * (treasure_y - start_y),
+		y = - 3 * treasure_l
+	})
 	minetest.add_node(pos, {name = "default:chest"})
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
-	for name, item in pairs(minetest.registered_items) do
-		local nBegin, nEnd = string.find(name, "default:")
-		if nBegin ~= nil then
-			if math.random(items / 5) == 1 then
-				inv:add_item('main', name .. " 1")
-			end
+	for _,name in pairs(item_list) do
+		if math.random(items / 5) == 1 then
+			inv:add_item('main', name)
 		end
 	end
+
 -- place a closer-stone to seal the entrance and exit
-	pos.x = cosine * (start_x + 2) + player_pos.x
-	pos.z = sine * (start_x + 2) + player_pos.z
-	pos.y = math.floor(player_pos.y + 0.5) - 3 * start_l - 1
-	minetest.add_node(pos, {name = "maze:closer"})
-	pos.x = cosine * (maze_size_x + 1) - sine * (exit_y - start_y) + player_pos.x
-	pos.z = sine * (maze_size_x + 1) + cosine * (exit_y - start_y) + player_pos.z
-	pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l - 1
-	minetest.add_node(pos, {name = "maze:closer"})
+	minetest.add_node(vector.add(playerpos, {
+		x = cosine * (start_x + 2),
+		z = sine * (start_x + 2),
+		y = - 3 * start_l - 1
+	}), {name = "maze:closer"})
+	minetest.add_node(vector.add(playerpos, {
+		x = cosine * (maze_size_x + 1) - sine * (exit_y - start_y),
+		z = sine * (maze_size_x + 1) + cosine * (exit_y - start_y),
+		y = - 3 * exit_l - 1
+	}), {name = "maze:closer"})
 	print(string.format("[maze] done after ca. %.2fs", os.clock() - t1))
 end
 
