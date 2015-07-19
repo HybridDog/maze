@@ -63,7 +63,7 @@ local function spawn_maze(name, param)
 	repeat
 		possible_ways = {}
 		-- is D possible?
-		if 
+		if
 			pos_x > 1 and pos_x < maze_size_x - 1 and pos_y > 1 and pos_y < maze_size_y - 1 and
 			pos_l < maze_size_l - 1 and
 			maze[pos_l + 1][pos_x - 1][pos_y - 1] and
@@ -96,7 +96,7 @@ local function spawn_maze(name, param)
 		end
 		-- is N possible?
 		if
-			pos_y - 2 >= 0 and pos_x - 1 >= 0 and pos_x + 1 < maze_size_x and 
+			pos_y - 2 >= 0 and pos_x - 1 >= 0 and pos_x + 1 < maze_size_x and
 			maze[pos_l][pos_x][pos_y - 1] and -- N is wall
 			maze[pos_l][pos_x][pos_y - 2] and -- N from N is wall
 			maze[pos_l][pos_x - 1][pos_y - 2] and -- NW from N is wall
@@ -109,7 +109,7 @@ local function spawn_maze(name, param)
 		end
 		-- is E possible?
 		if
-			pos_x + 2 < maze_size_x and pos_y - 1 >= 0 and pos_y + 1 < maze_size_y and 
+			pos_x + 2 < maze_size_x and pos_y - 1 >= 0 and pos_y + 1 < maze_size_y and
 			maze[pos_l][pos_x + 1][pos_y] and -- E is wall
 			maze[pos_l][pos_x + 2][pos_y] and -- E from E is wall
 			maze[pos_l][pos_x + 2][pos_y - 1] and -- NE from E is wall
@@ -122,7 +122,7 @@ local function spawn_maze(name, param)
 		end
 		-- is S possible?
 		if
-			pos_y + 2 < maze_size_y and pos_x - 1 >= 0 and pos_x + 1 < maze_size_x and 
+			pos_y + 2 < maze_size_y and pos_x - 1 >= 0 and pos_x + 1 < maze_size_x and
 			maze[pos_l][pos_x][pos_y + 1] and -- S is wall
 			maze[pos_l][pos_x][pos_y + 2] and -- S from S is wall
 			maze[pos_l][pos_x - 1][pos_y + 2] and -- SW from S is wall
@@ -135,7 +135,7 @@ local function spawn_maze(name, param)
 		end
 		-- is W possible?
 		if
-			pos_x - 2 >= 0 and pos_y - 1 >= 0 and pos_y + 1 < maze_size_y and 
+			pos_x - 2 >= 0 and pos_y - 1 >= 0 and pos_y + 1 < maze_size_y and
 			maze[pos_l][pos_x - 1][pos_y] and -- W is wall
 			maze[pos_l][pos_x - 2][pos_y] and -- W from W is wall
 			maze[pos_l][pos_x - 2][pos_y - 1] and -- NW from W is wall
@@ -149,18 +149,18 @@ local function spawn_maze(name, param)
 		if #possible_ways > 0 then
 			forward = true
 			direction = possible_ways[math.random(# possible_ways)]
-			if direction == "N" then 
+			if direction == "N" then
 				pos_y = pos_y - 1
-			elseif direction == "E" then 
+			elseif direction == "E" then
 				pos_x = pos_x + 1
-			elseif direction == "S" then 
+			elseif direction == "S" then
 				pos_y = pos_y + 1
-			elseif direction == "W" then 
+			elseif direction == "W" then
 				pos_x = pos_x - 1
-			elseif direction == "D" then 
+			elseif direction == "D" then
 				table.insert(updowns, {x = pos_x, y = pos_y, l = pos_l}) -- mark way down
 				pos_l = pos_l + 1
-			elseif direction == "U" then 
+			elseif direction == "U" then
 				pos_l = pos_l - 1
 				table.insert(updowns, {x = pos_x, y = pos_y, l = pos_l}) -- mark way up = down from level above
 			end
@@ -233,13 +233,13 @@ local function spawn_maze(name, param)
 	local player_dir = player:get_look_dir()
 	local cosine = 1
 	local sine = 0
-	if math.abs(player_dir.x) > math.abs(player_dir.z) then 
-		if player_dir.x <= 0 then 
+	if math.abs(player_dir.x) > math.abs(player_dir.z) then
+		if player_dir.x <= 0 then
 			cosine = -1
 		end
 	else
 		cosine = 0
-		if player_dir.z < 0 then 
+		if player_dir.z < 0 then
 			sine = -1
 		else
 			sine = 1
@@ -255,7 +255,7 @@ local function spawn_maze(name, param)
 		for y = 0, maze_size_y-1 do
 			local line
 			if l == 0
-			and y == math.floor(maze_size_y / 2) then
+			and y == start_y then
 				line = "<-"
 			else
 				line = "  "
@@ -264,17 +264,17 @@ local function spawn_maze(name, param)
 				local ladder_direction = 2
 				local pos = {}
 				-- rotate the maze in players view-direction and move it to his position
-				pos.x = cosine * (x + 2) - sine * (y - math.floor(maze_size_y / 2)) + player_pos.x
-				pos.z = sine * (x + 2) + cosine * (y - math.floor(maze_size_y / 2)) + player_pos.z
+				pos.x = cosine * (x + 2) - sine * (y - start_y) + player_pos.x
+				pos.z = sine * (x + 2) + cosine * (y - start_y) + player_pos.z
 				pos.y = math.floor(player_pos.y + 0.5) - 1 - 3 * l
 				pos = vector.round(pos)
-				
+
 				local change_level_down = false
 				local change_level_up = false
 				for i, v in ipairs(updowns) do
 					if v.x == x
 					and v.y == y then
-						if v.l == l then 
+						if v.l == l then
 							change_level_down = true
 							-- find direction for the ladders
 							ladder_direction = 2
@@ -330,7 +330,7 @@ local function spawn_maze(name, param)
 				end
 				pos.y = pos.y + 1
 				local letter = "  "
-				if maze[l][x][y] then 
+				if maze[l][x][y] then
 					--line = "X" .. line
 					letter = "██"
 					table.insert(tab, {{pos.x, pos.y, pos.z}, 2})
@@ -345,12 +345,12 @@ local function spawn_maze(name, param)
 						table.insert(tab, {{pos.x, pos.y, pos.z}, 0})
 					end
 					pos.y = pos.y + 1
-					if change_level_up then 
+					if change_level_up then
 						table.insert(tab, {{pos.x, pos.y, pos.z}, 4, ladder_direction})
-					elseif change_level_down then 
+					elseif change_level_down then
 						table.insert(tab, {{pos.x, pos.y, pos.z}, 5, ladder_direction})
 						letter = "☀▤"
-					elseif math.random(20) == 1 then 
+					elseif math.random(20) == 1 then
 						table.insert(tab, {{pos.x, pos.y, pos.z}, 5})
 						letter = "☀ "
 					else
@@ -359,7 +359,7 @@ local function spawn_maze(name, param)
 				end
 				line = letter .. line
 				pos.y = pos.y + 1
-				if change_level_up then 
+				if change_level_up then
 					table.insert(tab, {{pos.x, pos.y, pos.z}, 4, ladder_direction})
 				else
 					table.insert(tab, {{pos.x, pos.y, pos.z}, 3})
@@ -408,10 +408,11 @@ local function spawn_maze(name, param)
 
 
 	-- if exit is underground, dig a hole to surface
-	local pos = {}
-	pos.x = cosine * (maze_size_x + 2) - sine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.x
-	pos.z = sine * (maze_size_x + 2) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
-	pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l
+	local pos = {
+		x = cosine * (maze_size_x + 2) - sine * (exit_y - start_y) + player_pos.x,
+		z = sine * (maze_size_x + 2) + cosine * (exit_y - start_y) + player_pos.z,
+		y = math.floor(player_pos.y + 0.5) - 3 * exit_l
+	}
 	local ladder_direction = 2
 	if cosine == -1 then ladder_direction = 3 end
 	if sine == -1 then ladder_direction = 5 end
@@ -424,14 +425,14 @@ local function spawn_maze(name, param)
 		is_air  = minetest.get_node_or_nil(pos)
 	end
 -- place a chest as treasure
-	pos.x = cosine * (treasure_x + 2) - sine * (treasure_y - math.floor(maze_size_y / 2)) + player_pos.x
-	pos.z = sine * (treasure_x + 2) + cosine * (treasure_y - math.floor(maze_size_y / 2)) + player_pos.z
+	pos.x = cosine * (treasure_x + 2) - sine * (treasure_y - start_y) + player_pos.x
+	pos.z = sine * (treasure_x + 2) + cosine * (treasure_y - start_y) + player_pos.z
 	pos.y = math.floor(player_pos.y + 0.5) - 3 * treasure_l
 	local items = 0
-	for name, item in pairs(minetest.registered_items) do 
+	for name, item in pairs(minetest.registered_items) do
 		local nBegin, nEnd = string.find(name, "default:")
-		if nBegin then 
-			items = items + 1 
+		if nBegin then
+			items = items + 1
 		end
 	end
 	minetest.add_node(pos, {name = "default:chest"})
@@ -439,19 +440,19 @@ local function spawn_maze(name, param)
 	local inv = meta:get_inventory()
 	for name, item in pairs(minetest.registered_items) do
 		local nBegin, nEnd = string.find(name, "default:")
-		if nBegin ~= nil then 
-			if math.random(items / 5) == 1 then 
+		if nBegin ~= nil then
+			if math.random(items / 5) == 1 then
 				inv:add_item('main', name .. " 1")
 			end
 		end
 	end
 -- place a closer-stone to seal the entrance and exit
-	pos.x = cosine * (start_x + 2) - sine * (start_y - math.floor(maze_size_y / 2)) + player_pos.x
-	pos.z = sine * (start_x + 2) + cosine * (start_y - math.floor(maze_size_y / 2)) + player_pos.z
+	pos.x = cosine * (start_x + 2) + player_pos.x
+	pos.z = sine * (start_x + 2) + player_pos.z
 	pos.y = math.floor(player_pos.y + 0.5) - 3 * start_l - 1
 	minetest.add_node(pos, {name = "maze:closer"})
-	pos.x = cosine * (maze_size_x + 1) - sine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.x
-	pos.z = sine * (maze_size_x + 1) + cosine * (exit_y - math.floor(maze_size_y / 2)) + player_pos.z
+	pos.x = cosine * (maze_size_x + 1) - sine * (exit_y - start_y) + player_pos.x
+	pos.z = sine * (maze_size_x + 1) + cosine * (exit_y - start_y) + player_pos.z
 	pos.y = math.floor(player_pos.y + 0.5) - 3 * exit_l - 1
 	minetest.add_node(pos, {name = "maze:closer"})
 	print(string.format("[maze] done after ca. %.2fs", os.clock() - t1))
