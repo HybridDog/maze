@@ -478,16 +478,13 @@ minetest.register_node("maze:closer", {
 	drop = "",
 	material = { diggability = "not"},
 	on_construct = function(pos)
-		table.insert(maze_closer, pos)
+		maze_closer[#maze_closer+1] = pos
 		closer_available = true
 	end,
 })
 
 -- detect player walk over closer stone (abm isn't fast enough)
-minetest.register_globalstep(function(dtime)
-	if not closer_available then
-		return
-	end
+local function playerwalk()
 	for _,player in pairs(minetest.get_connected_players()) do
 		local player_pos = player:getpos()
 		for _,pos in pairs(maze_closer) do
@@ -508,11 +505,23 @@ minetest.register_globalstep(function(dtime)
 			end
 		end
 	end
-end)
+end
+
+local tstep = 2
+local function do_step()
+	if closer_available then
+		tstep = 0
+		playerwalk()
+	else
+		tstep = 2
+	end
+	minetest.after(tstep, do_step)
+end
+minetest.after(tstep, do_step)
 
 -- create list of all closer stones (walk over detection now in globalstep, because abm isn't called often enough
-minetest.register_abm(
-	{nodenames = {"maze:closer"},
+minetest.register_abm({
+	nodenames = {"maze:closer"},
 	interval = 5,
 	chance = 1,
 	action = function(pos)
@@ -521,7 +530,7 @@ minetest.register_abm(
 				return
 			end
 		end
-		table.insert(maze_closer, pos)
+		maze_closer[#maze_closer+1] = pos
 		closer_available = true
 	end,
 })
