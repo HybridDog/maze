@@ -507,8 +507,8 @@ local function playerwalk()
 	end
 end
 
-local tstep = 2
 local function do_step()
+	local tstep
 	if closer_available then
 		tstep = 0
 		playerwalk()
@@ -517,7 +517,7 @@ local function do_step()
 	end
 	minetest.after(tstep, do_step)
 end
-minetest.after(tstep, do_step)
+minetest.after(5, do_step)
 
 -- create list of all closer stones (walk over detection now in globalstep, because abm isn't called often enough
 minetest.register_abm({
