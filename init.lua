@@ -1,7 +1,9 @@
 local function spawn_maze(name, param)
 	local t1 = os.clock()
 	math.randomseed(os.time())
-	local found, _, maze_size_x_st, maze_size_y_st, maze_size_l_st, material_floor, material_wall, material_ceiling = param:find("(%d+)%s+(%d+)%s+(%d+)%s+([^%s]+)%s+([^%s]+)%s+([^%s]+)")
+	local _, _, maze_size_x_st, maze_size_y_st, maze_size_l_st, material_floor,
+		material_wall, material_ceiling = param:find(
+		"(%d+)%s+(%d+)%s+(%d+)%s+([^%s]+)%s+([^%s]+)%s+([^%s]+)")
 	local min_size = 11
 	local maze_size_x = tonumber(maze_size_x_st)
 	maze_size_x = maze_size_x or 20
@@ -26,7 +28,9 @@ local function spawn_maze(name, param)
 	end
 	material_ceiling = material_ceiling or "default:cobble"
 
-	minetest.chat_send_player(name, "Try to build " .. maze_size_x .. " * " .. maze_size_y .. " * " .. maze_size_l .. " maze.  F:" .. material_floor .. " W:" .. material_wall .. " C:" .. material_ceiling)
+	minetest.chat_send_player(name, "Try to build " .. maze_size_x .. " * " ..
+		maze_size_y .. " * " .. maze_size_l .. " maze.  F:" .. material_floor ..
+		" W:" .. material_wall .. " C:" .. material_ceiling)
 
 	local maze = {}
 	for l = 0, maze_size_l-1 do
@@ -49,9 +53,6 @@ local function spawn_maze(name, param)
 	maze[pos_l][pos_x][pos_y] = false -- the entrance
 	local moves = {}
 	local updowns = {}
-	local possible_ways = {}
-	local direction = ""
-	local pos = {x = 0, y = 0, l = 0}
 	local forward = true
 	local return_count = 0
 	local treasure_x = 0
@@ -61,7 +62,7 @@ local function spawn_maze(name, param)
 	table.insert(moves, {x = pos_x, y = pos_y, l = pos_l})
 	-- print(#moves .. " " .. moves[1].x .. " " .. moves[1].y)
 	repeat
-		possible_ways = {}
+		local possible_ways = {}
 		-- is D possible?
 		if
 			pos_x > 1 and pos_x < maze_size_x - 1 and pos_y > 1 and pos_y < maze_size_y - 1 and
@@ -148,7 +149,7 @@ local function spawn_maze(name, param)
 		end
 		if #possible_ways > 0 then
 			forward = true
-			direction = possible_ways[math.random(# possible_ways)]
+			local direction = possible_ways[math.random(# possible_ways)]
 			if direction == "N" then
 				pos_y = pos_y - 1
 			elseif direction == "E" then
@@ -189,7 +190,7 @@ local function spawn_maze(name, param)
 				return_count = return_count + 1
 				forward = false
 			end
-			pos = table.remove(moves)
+			local pos = table.remove(moves)
 			pos_x = pos.x
 			pos_y = pos.y
 			pos_l = pos.l
@@ -221,10 +222,12 @@ local function spawn_maze(name, param)
 	local exit_x = maze_size_x - 1 -- exit always on opposite side of maze
 	local exit_y = math.random(maze_size_y - 3) + 1
 	local exit_l = math.random(maze_size_l) - 1
-	local exit_reachable = false
+	local exit_reachable
 	repeat
 		maze[exit_l][exit_x][exit_y] = false
-		exit_reachable = not maze[exit_l][exit_x - 1][exit_y] or not maze[exit_l][exit_x][exit_y - 1] or not maze[exit_l][exit_x][exit_y + 1]
+		exit_reachable = not maze[exit_l][exit_x - 1][exit_y]
+			or not maze[exit_l][exit_x][exit_y - 1]
+			or not maze[exit_l][exit_x][exit_y + 1]
 		exit_x = exit_x - 1
 	until exit_reachable
 
@@ -265,7 +268,7 @@ local function spawn_maze(name, param)
 				-- rotate the maze in players view-direction and move it to his position
 				local change_level_down = false
 				local change_level_up = false
-				for i, v in ipairs(updowns) do
+				for _, v in ipairs(updowns) do
 					if v.x == x
 					and v.y == y then
 						if v.l == l then
@@ -392,12 +395,12 @@ local function spawn_maze(name, param)
 	local nodes = manip:get_data()
 	local param2s = manip:get_param2_data()
 
-	for _,p in pairs(tab) do
-		local p, typ, par = unpack(p)
-		p = area:index(unpack(p))
-		nodes[p] = c[typ]
-		if par then
-			param2s[p] = par
+	for _,val in pairs(tab) do
+		local p, typ, par2 = unpack(val)
+		local vi = area:index(p[1], p[2], p[3])
+		nodes[vi] = c[typ]
+		if par2 then
+			param2s[vi] = par2
 		end
 	end
 
@@ -428,10 +431,10 @@ local function spawn_maze(name, param)
 -- place a chest as treasure
 	local items = 0
 	local item_list = {}
-	for name in pairs(minetest.registered_items) do
-		if string.find(name, "default:") then
+	for item_name in pairs(minetest.registered_items) do
+		if string.find(item_name, "default:") then
 			items = items + 1
-			item_list[items] = name
+			item_list[items] = item_name
 		end
 	end
 	pos = vector.add(playerpos, {
@@ -442,9 +445,9 @@ local function spawn_maze(name, param)
 	minetest.add_node(pos, {name = "default:chest"})
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
-	for _,name in pairs(item_list) do
+	for _,item_name in pairs(item_list) do
 		if math.random(items / 5) == 1 then
-			inv:add_item('main', name)
+			inv:add_item('main', item_name)
 		end
 	end
 
